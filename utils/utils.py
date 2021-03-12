@@ -1,7 +1,6 @@
-
-'''
-Utilities functions for the framework.
-'''
+"""
+    Utilities for the framework.
+"""
 import pandas as pd
 import numpy as np
 import os
@@ -16,15 +15,10 @@ import warnings
 import sklearn.metrics
 warnings.filterwarnings('ignore')
 
-import pdb
-
-#torch.set_default_tensor_type('torch.DoubleTensor')
-#torch_dtype = torch.float64 #torch.float32
-
 res_dir = 'results'
 data_dir = 'data'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-#device = 'cpu' #set to CPU here if checking timing for fair timing comparison
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -41,14 +35,15 @@ def parse_args():
     parser.add_argument("--alpha_v", default=0, type=float, help='alpha')
     parser.add_argument("--dropout_p", default=0.3, type=float, help='dropout')
     parser.add_argument("--n_layers", default=1, type=int, help='number of layers')
+    parser.add_argument("--top_k", default=10, type=int, help='top_k predictions for HR and NDCG')
+    parser.add_argument("--test_batch_size", default=101, type=int, help='batch size of test data loader')
     parser.add_argument("--dataset_name", type=str, default='cora', help='dataset name')
-    
-    
-    
+
     opt = parser.parse_args()
-    if opt.predict_edge and opt.dataset_name != 'citeseer':
-        raise Exception('edge prediction not currently supported on {}'.format(opt.dataset_name))
+    # if opt.predict_edge and opt.dataset_name != 'citeseer':
+    #     raise Exception('edge prediction not currently supported on {}'.format(opt.dataset_name))
     return opt
+
 
 def readlines(path):
     with open(path, 'r') as f:
@@ -63,11 +58,10 @@ def get_label_percent(dataset_name):
     elif dataset_name == 'dblp':
         return .04
     else:
-        raise Exception('dataset not supported')
+        return .15
+        # raise Exception('dataset not supported')
     
     
 def create_dir(path):
     if not os.path.exists(path):
         os.mkdir(path)
-    
-    

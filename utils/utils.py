@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import os
+import random
 import argparse
 import torch
 import math
@@ -24,7 +25,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     #    
     parser.add_argument("--verbose", dest='verbose', action='store_const', default=False, const=True, help='Print out verbose info during optimization')
-    parser.add_argument("--seed", dest='fix_seed', action='store_const', default=False, const=True, help='Fix seed for reproducibility and fair comparison.')
     parser.add_argument("--exp_wt", dest='use_exp_wt', action='store_const', default=False, const=True, help='Fix seed for reproducibility and fair comparison.')
     parser.add_argument("--do_svd", action='store_const', default=False, const=True, help='use svd')
     parser.add_argument("--method", type=str, default='hypergcn', help='which baseline method')
@@ -35,9 +35,13 @@ def parse_args():
     parser.add_argument("--alpha_v", default=0, type=float, help='alpha')
     parser.add_argument("--dropout_p", default=0.3, type=float, help='dropout')
     parser.add_argument("--n_layers", default=1, type=int, help='number of layers')
+    parser.add_argument("--seed", default=42, type=int, help='seed for reproducibility')
     parser.add_argument("--top_k", default=10, type=int, help='top_k predictions for HR and NDCG')
+    parser.add_argument("--embed_dim", default=300, type=int, help='user, item and list embedding sizes')
     parser.add_argument("--test_batch_size", default=101, type=int, help='batch size of test data loader')
-    parser.add_argument("--dataset_name", type=str, default='cora', help='dataset name')
+    parser.add_argument("--dataset_name", type=str, default='MusicalInstruments', help='dataset name')
+    parser.add_argument("--num_ng", type=int, default=4, help="Number of negative samples for training set")
+    parser.add_argument("--num_ng_test", type=int, default=100, help="Number of negative samples for test set")
 
     opt = parser.parse_args()
     # if opt.predict_edge and opt.dataset_name != 'citeseer':
@@ -59,9 +63,18 @@ def get_label_percent(dataset_name):
         return .04
     else:
         return .15
-        # raise Exception('dataset not supported')
     
     
 def create_dir(path):
     if not os.path.exists(path):
         os.mkdir(path)
+
+
+def seed_everything(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True

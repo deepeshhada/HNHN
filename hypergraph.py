@@ -1,3 +1,4 @@
+import os
 """
 	using hypergraph representations for document classification.
 """
@@ -158,17 +159,13 @@ class Hypergraph(nn.Module):
 
 class Hypertrain:
 	def __init__(self, args):
-
-		# cross entropy between predicted and actual labels
-		# self.loss_fn = nn.CrossEntropyLoss()  # consider logits
 		self.loss_fn = nn.BCELoss()  # consider logits
 
 		self.hypergraph = Hypergraph(args.vidx, args.eidx, args.nv, args.ne, args.v_weight, args.e_weight, args)
 		self.optim = optim.Adam(self.hypergraph.all_params(), lr=.04)
-		# """
+
 		milestones = [100 * i for i in range(1, 4)]  # [100, 200, 300]
 		self.scheduler = optim.lr_scheduler.MultiStepLR(self.optim, milestones=milestones, gamma=0.51)
-		# """
 		self.args = args
 
 	def train(self, v, e, label_idx, labels):
@@ -180,7 +177,7 @@ class Hypertrain:
 			args.cur_epoch = i
 
 			v, e, pred_all = self.hypergraph(v_init, e_init)
-			pred = pred_all[label_idx]
+			pred = pred_all[label_idx].squeeze()
 			loss = self.loss_fn(pred, labels.float())
 			if i % 2 == 0:
 				test_err = self.eval(pred_all)
@@ -285,7 +282,7 @@ def gen_data(args, data_path='data/cora_author.pt', flip_edge_node=False, do_val
 	# args.val_labels = args.all_labels[args.val_idx].to(device)
 
 	n_labels = ne
-	args.all_labels = torch.LongTensor(args.edge_classes)
+	args.all_labels = torch.cuda.LongTensor(args.edge_classes) if torch.cuda.is_available() else torch.cuda.LongTensor(args.edge_classes)
 	args.label_idx = torch.from_numpy(np.arange(n_labels)).to(torch.int64)
 
 	print('getting validation indices...')
@@ -348,6 +345,7 @@ def gen_data(args, data_path='data/cora_author.pt', flip_edge_node=False, do_val
 	args.v_reg_sum = torch.Tensor(v_reg_sum).unsqueeze(-1).to(device)
 	args.v_reg_weight = torch.Tensor(v_reg_weight).unsqueeze(-1).to(device)
 	args.e_reg_sum = torch.Tensor(e_reg_sum).unsqueeze(-1).to(device)
+	print('dataset processed into tensors')
 	return args
 
 
@@ -415,11 +413,10 @@ def select_params(data_path, args):
 if __name__ == '__main__':
 	args = utils.parse_args()
 	dataset_name = args.dataset_name
-	data_path = 'data/generic_2_cls_300.pt'
+	data_path = os.path.join('data', args.dataset_name, args.dataset_name + '.pt')
 
-	if args.fix_seed:
-		np.random.seed(42)
-		torch.manual_seed(42)
+	np.random.seed(args.seed)
+	torch.manual_seed(args.seed)
 
 	select_params(data_path, args)
-	print('done!')
+	print('Done!')

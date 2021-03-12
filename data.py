@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset
 import numpy as np
 import pandas as pd
 import os
+import random
 from collections import defaultdict
 import re
 import sklearn
@@ -14,21 +15,50 @@ from sklearn.decomposition import TruncatedSVD
 from utils import utils, data_utils
 
 
-def load_preprocessed():
+def save_splits(args):
+	data_path = os.path.join("data", args.dataset_name, args.dataset_name + ".csv")
+	dataset = pd.read_csv(
+		data_path,
+		names=['user_id', 'item_id', 'rating', 'timestamp'],
+		engine='python',
+		header=None
+	)
+
+	print('constructing train and test datasets and saving splits...')
+	data = data_utils.HNHNData(args, dataset)
+	train_df = data.save_train_instance()
+	test_df = data.save_test_instance()
+
+	print('saving user, item and list embeddings...')
+	num_users = train_df['users'].nunique()
+	num_items = train_df['items'].nunique()
+	num_lists = num_items
+
+	user_ids = np.arange(num_users)
+	item_ids = np.arange(num_users, num_users + num_items)
+	list_ids = np.arange(num_users + num_items, num_users + num_items + num_lists)
+
+	data_utils.save_embeddings(args, user_ids, mode='user')
+	data_utils.save_embeddings(args, item_ids, mode='item')
+	data_utils.save_embeddings(args, list_ids, mode='list')
+
+
+def load_preprocessed(args):
 	"""
 		reads preprocessed dataset, saves combined train df, test df and test_loader.
 		:returns
 			len(train_set), len(test_set), test_loader
 	"""
-	train_data_path = 'data/generic/train.csv'
-	test_data_path = 'data/generic/test.csv'
+	train_data_path = os.path.join('data', args.dataset_name, 'train.csv')
+	test_data_path = os.path.join('data', args.dataset_name, 'test.csv')
+	df_save_path = os.path.join('data', args.dataset_name, args.dataset_name + '.graph')
 
 	train_df = pd.read_csv(train_data_path, sep='\t', header=None)
 	test_df = pd.read_csv(test_data_path, sep='\t', header=None)
 	df = train_df.append(test_df)
 	num_users = train_df[0].nunique()
 	df[1] = df[1] + num_users
-	df.to_csv('data/generic/generic.cites', sep='\t', index=False, header=False)
+	df.to_csv(df_save_path, sep='\t', index=False, header=False)
 
 	print('saved df')
 
@@ -43,9 +73,6 @@ def load_preprocessed():
 		batch_size=args.test_batch_size,
 		shuffle=False
 	)
-
-	torch.save(test_loader, 'data/generic_testloader.pth')
-	print('saved test_loader')
 
 	return len(train_df), len(test_df), test_loader
 
@@ -66,12 +93,15 @@ def process_generic_edge(args):
 			Therefore, dim(e) = 2 for each e in E.
 
 	"""
-	train_len, test_len, test_loader = load_preprocessed()
-	data_path = 'data/generic/generic.cites'
+	train_len, test_len, test_loader = load_preprocessed(args)
+	data_save_path = os.path.join('data', args.dataset_name, args.dataset_name + '.pt')
+	# data_path = 'data/generic/generic.cites'
+	data_path = os.path.join('data', args.dataset_name, args.dataset_name + '.graph')
 
-	feat_dim = 300
-	user_embeddings = data_utils.read_embeddings(mode="user")
-	item_embeddings = data_utils.read_embeddings(mode="item")
+	feat_dim = args.embed_dim
+	user_embeddings = data_utils.read_embeddings(args, mode="user")
+	item_embeddings = data_utils.read_embeddings(args, mode="item")
+	list_embeddings = data_utils.read_embeddings(args, mode="list")
 
 	node2edge = defaultdict(set)
 	edge2node = defaultdict(set)
@@ -178,13 +208,15 @@ def process_generic_edge(args):
 			'test_loader': test_loader,
 			'user_item_cls_map': cls2idx
 		},
-		'data/generic_{}_cls_{}.pt'.format(len(set(classes)), feat_dim)
+		data_save_path
 	)
-	print('Saved dataset at "data/generic_{}_cls_{}.pt"'.format(len(set(classes)), feat_dim))
+	print('Saved dataset at "{}"'.format(data_save_path))
 
 
 if __name__ == '__main__':
 	args = utils.parse_args()
-	dataset_name = 'generic'
 
+	print(f'seeding for reproducibility at {args.seed}...')
+	utils.seed_everything(args.seed)
+	save_splits(args)
 	process_generic_edge(args)

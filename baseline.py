@@ -33,7 +33,7 @@ def train_hgnn(args):
         else:
             data_path = 'data/citeseer6cls3703.pt' if args.dataset_name == 'citeseer' else 'data/cora_author_10cls1000.pt'
 
-        args = hypergraph.gen_data_cora(args, data_path=data_path, flip_edge_node=False)
+        args = hypergraph.gen_data(args, data_path=data_path, flip_edge_node=False)
     elif args.dataset_name in ['dblp', 'pubmed']:
         data_path = 'data/pubmed_data.pt' if args.dataset_name == 'pubmed' else 'data/dblp_data.pt'
         args = hypergraph.gen_data_dblp(args, data_path=data_path)
@@ -105,7 +105,7 @@ def train_hypergcn(args):
             data_path = 'data/citeseer.pt' if args.dataset_name == 'citeseer' else 'data/cora_author_10cls300.pt'
         else:
             data_path = 'data/citeseer6cls3703.pt' if args.dataset_name == 'citeseer' else 'data/cora_author_10cls1000.pt'
-        args = hypergraph.gen_data_cora(args, data_path=data_path, flip_edge_node=False)
+        args = hypergraph.gen_data(args, data_path=data_path, flip_edge_node=False)
     elif args.dataset_name in ['dblp', 'pubmed']:
         data_path = 'data/pubmed_data.pt' if args.dataset_name == 'pubmed' else 'data/dblp_data.pt'
         args = hypergraph.gen_data_dblp(args, data_path=data_path)

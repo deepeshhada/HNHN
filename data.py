@@ -56,9 +56,23 @@ def load_preprocessed(args):
 	train_df = pd.read_csv(train_data_path, sep='\t', header=None)
 	test_df = pd.read_csv(test_data_path, sep='\t', header=None)
 	df = train_df.append(test_df)
-	num_users = train_df[0].nunique()
-	df[1] = df[1] + num_users
+
+	train_df.columns = ['user_id', 'item_id', 'rating']
+	test_df.columns = ['user_id', 'item_id', 'rating']
+	df.columns = ['user_id', 'item_id', 'rating']
+	num_users = train_df['user_id'].nunique()
+	num_items = train_df['item_id'].nunique()
+
+	df['list_id'] = df['item_id']
+
+	df['item_id'] = df['item_id'] + num_users
+	df['list_id'] = df['list_id'] + num_users + num_items
+
+	df = df[['user_id', 'item_id', 'list_id', 'rating']]
+
 	df.to_csv(df_save_path, sep='\t', index=False, header=False)
+
+	print('saved graph df!')
 
 	test_df = df[len(train_df):]
 	test_df.columns = ['users', 'items', 'ratings']

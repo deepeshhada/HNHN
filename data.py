@@ -191,26 +191,29 @@ def process_generic_edge(args):
 
 	edge_classes = [int(float(c)) for c in edge_classes]
 	print('saving dataset...')
-	torch.save(
-		{
-			'n_author': n_edges,
-			'n_paper': n_nodes,
-			'classes': classes,
-			'author_classes': edge_classes,
-			'paper_author': node_edge,
-			'author_paper': edge_node,
-			'paperwt': nodewt,
-			'authorwt': edgewt,
-			'paper_X': X,
-			'author_X': edge_X,
-			'train_len': train_len,
-			'test_len': test_len,
-			'test_loader': test_loader,
-			'user_item_cls_map': cls2idx
-		},
-		data_save_path
-	)
-	print('Saved dataset at "{}"'.format(data_save_path))
+	root_save_path = os.path.join('data', args.dataset_name, 'data_dict')
+	if not os.path.exists(root_save_path):
+		os.mkdir(root_save_path)
+	save_data_dict(root_save_path, 'n_author', n_edges)
+	save_data_dict(root_save_path, 'n_paper', n_nodes)
+	save_data_dict(root_save_path, 'classes', classes)
+	save_data_dict(root_save_path, 'author_classes', edge_classes)
+	save_data_dict(root_save_path, 'paper_author', node_edge)
+	save_data_dict(root_save_path, 'author_paper', edge_node)
+	save_data_dict(root_save_path, 'paperwt', nodewt)
+	save_data_dict(root_save_path, 'authorwt', edgewt)
+	save_data_dict(root_save_path, 'paper_X', X)
+	save_data_dict(root_save_path, 'author_X', edge_X)
+	save_data_dict(root_save_path, 'train_len', train_len)
+	save_data_dict(root_save_path, 'test_len', test_len)
+	save_data_dict(root_save_path, 'test_loader', test_loader)
+	save_data_dict(root_save_path, 'user_item_cls_map', cls2idx)
+
+	print('Saved dataset at "{}"'.format(root_save_path))
+
+
+def save_data_dict(root_path, key, value):
+	torch.save(value, os.path.join(root_path, key + '.pth'))
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 """
-Processing data
+	Processing data
 """
 import torch
 from torch.utils.data import Dataset, DataLoader, TensorDataset
@@ -60,8 +60,6 @@ def load_preprocessed(args):
 	df[1] = df[1] + num_users
 	df.to_csv(df_save_path, sep='\t', index=False, header=False)
 
-	print('saved df')
-
 	test_df = df[len(train_df):]
 	test_df.columns = ['users', 'items', 'ratings']
 	users = torch.Tensor(test_df['users'])
@@ -94,8 +92,6 @@ def process_generic_edge(args):
 
 	"""
 	train_len, test_len, test_loader = load_preprocessed(args)
-	data_save_path = os.path.join('data', args.dataset_name, args.dataset_name + '.pt')
-	# data_path = 'data/generic/generic.cites'
 	data_path = os.path.join('data', args.dataset_name, args.dataset_name + '.graph')
 
 	feat_dim = args.embed_dim
@@ -106,6 +102,8 @@ def process_generic_edge(args):
 	node2edge = defaultdict(set)
 	edge2node = defaultdict(set)
 
+	print('building node2edge and edge2node relationships...')
+
 	with open(data_path, 'r') as f:
 		lines = f.readlines()
 		edge_idx = 0
@@ -114,9 +112,11 @@ def process_generic_edge(args):
 			try:
 				node2edge[line[0]].add(str(edge_idx))
 				node2edge[line[1]].add(str(edge_idx))
+				node2edge[line[2]].add(str(edge_idx))
 				# hyperedge connects which nodes - add line[0] and line[1] to each edge id
 				edge2node[str(edge_idx)].add(line[0])
 				edge2node[str(edge_idx)].add(line[1])
+				edge2node[str(edge_idx)].add(line[2])
 				edge_idx += 1
 			except ValueError as e:
 				continue
@@ -127,6 +127,8 @@ def process_generic_edge(args):
 	edge_node = []  # edge
 	nodewt = torch.zeros(len(node2edge))
 	edgewt = torch.zeros(len(edge2node))
+
+	print('assigning weights to nodes and edges...')
 
 	for edge, nodes in edge2node.items():
 		if len(nodes) == 1:
@@ -153,6 +155,8 @@ def process_generic_edge(args):
 	node_idx_set = set()
 	edge_idx_set = set()
 
+	print('preparing feature vectors and adding nodes and edges to sets...')
+
 	with open(data_path, 'r') as f:
 		lines = f.readlines()
 		edge_id = 0
@@ -160,8 +164,11 @@ def process_generic_edge(args):
 			line = line.strip().split('\t')
 			user_id = line[0]
 			item_id = line[1]
+			list_id = line[2]
+
 			user_x = torch.FloatTensor(user_embeddings[int(user_id)])
 			item_x = torch.FloatTensor(item_embeddings[int(item_id)])
+			list_x = torch.FloatTensor(list_embeddings[int(list_id)])
 
 			if user_id in id2node_idx:
 				idx = id2node_idx[user_id]
@@ -173,6 +180,11 @@ def process_generic_edge(args):
 				node_idx_set.add(idx)
 				X[idx] = item_x
 				classes[idx] = 'item'
+			if list_id in id2node_idx:
+				idx = id2node_idx[list_id]
+				node_idx_set.add(idx)
+				X[idx] = list_x
+				classes[idx] = 'list'
 			if str(edge_id) in id2edge_idx:
 				idx = id2edge_idx[str(edge_id)]
 				edge_idx_set.add(idx)
@@ -203,11 +215,12 @@ def process_generic_edge(args):
 	save_data_dict(root_save_path, 'paperwt', nodewt)
 	save_data_dict(root_save_path, 'authorwt', edgewt)
 	save_data_dict(root_save_path, 'paper_X', X)
-	save_data_dict(root_save_path, 'author_X', edge_X)
+	# save_data_dict(root_save_path, 'author_X', edge_X)
 	save_data_dict(root_save_path, 'train_len', train_len)
 	save_data_dict(root_save_path, 'test_len', test_len)
 	save_data_dict(root_save_path, 'test_loader', test_loader)
 	save_data_dict(root_save_path, 'user_item_cls_map', cls2idx)
+	np.save(os.path.join(root_save_path, 'author_X.npy'), edge_X)
 
 	print('Saved dataset at "{}"'.format(root_save_path))
 

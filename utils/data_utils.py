@@ -156,3 +156,41 @@ def read_embeddings(args, mode):
     with open(load_path, 'rb') as f:
         embed_dict = pickle.load(f)
     return embed_dict
+
+
+def load_data_dict(args):
+    root_path = os.path.join('data', args.dataset_name, 'data_dict')
+    n_edges = torch.load(os.path.join(root_path, 'n_author.pth'))
+    n_nodes = torch.load(os.path.join(root_path, 'n_paper.pth'))
+    classes = torch.load(os.path.join(root_path, 'classes.pth'))
+    edge_classes = torch.load(os.path.join(root_path, 'author_classes.pth'))
+    node_edge = torch.load(os.path.join(root_path, 'paper_author.pth'))
+    edge_node = torch.load(os.path.join(root_path, 'author_paper.pth'))
+    nodewt = torch.load(os.path.join(root_path, 'paperwt.pth'))
+    edgewt = torch.load(os.path.join(root_path, 'authorwt.pth'))
+    X = torch.load(os.path.join(root_path, 'paper_X.pth'))
+    edge_X = torch.load(os.path.join(root_path, 'author_X.pth'))
+    train_len = torch.load(os.path.join(root_path, 'train_len.pth'))
+    test_len = torch.load(os.path.join(root_path, 'test_len.pth'))
+    test_loader = torch.load(os.path.join(root_path, 'test_loader.pth'))
+    cls2idx = torch.load(os.path.join(root_path, 'user_item_cls_map.pth'))
+
+    data_dict = {
+        'n_author': n_edges,
+        'n_paper': n_nodes,
+        'classes': classes,
+        'author_classes': edge_classes,
+        'paper_author': node_edge,
+        'author_paper': edge_node,
+        'paperwt': nodewt,
+        'authorwt': edgewt,
+        'paper_X': X,
+        'author_X': edge_X,
+        'train_len': train_len,
+        'test_len': test_len,
+        'test_loader': test_loader,
+        'user_item_cls_map': cls2idx
+    }
+
+    return data_dict
+

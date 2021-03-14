@@ -75,6 +75,7 @@ def load_preprocessed(args):
 	print('saved graph df!')
 
 	test_df = df[len(train_df):]
+	del test_df['list_id']
 	test_df.columns = ['users', 'items', 'ratings']
 	users = torch.Tensor(test_df['users'])
 	items = torch.Tensor(test_df['items'])

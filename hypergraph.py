@@ -10,7 +10,7 @@ from torch.nn import Parameter
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.optim as optim
-from utils import utils, evaluate
+from utils import utils, evaluate, data_utils
 import math
 from sklearn.decomposition import TruncatedSVD
 from collections import defaultdict
@@ -224,12 +224,12 @@ def train(args):
 	return test_err
 
 
-def gen_data(args, data_path='data/cora_author.pt', flip_edge_node=False, do_val=False):
+def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	"""
 		Retrieve and process data, can be used generically for any dataset with predefined data format, eg cora, citeseer, etc.
 		flip_edge_node: whether to flip edge and node in case of relation prediction.
 	"""
-	data_dict = torch.load(data_path)
+	# data_dict = torch.load(data_path)
 	paper_author = torch.LongTensor(data_dict['paper_author'])
 	author_paper = torch.LongTensor(data_dict['author_paper'])
 	n_author = data_dict['n_author']  # num users
@@ -349,7 +349,7 @@ def gen_data(args, data_path='data/cora_author.pt', flip_edge_node=False, do_val
 	return args
 
 
-def select_params(data_path, args):
+def select_params(data_dict, args):
 	# find best hyperparameters with by splitting training set into train + validation set
 	best_err = sys.maxsize
 	best_err_std = sys.maxsize
@@ -376,11 +376,8 @@ def select_params(data_path, args):
 	for av, ae in a_list1:
 		args.alpha_v = av / 10
 		args.alpha_e = ae / 10
-		print('ALPHA ', args.alpha_v)
-		err_ar = np.zeros(kfold)
-		time_ar = np.zeros(kfold)
 
-		args = gen_data(args, data_path=data_path, do_val=True)
+		args = gen_data(args, data_dict=data_dict, do_val=True)
 
 		time0 = time.time()
 		test_err = train(args)
@@ -414,9 +411,10 @@ if __name__ == '__main__':
 	args = utils.parse_args()
 	dataset_name = args.dataset_name
 	data_path = os.path.join('data', args.dataset_name, args.dataset_name + '.pt')
+	data_dict = data_utils.load_data_dict(args)
 
 	np.random.seed(args.seed)
 	torch.manual_seed(args.seed)
 
-	select_params(data_path, args)
+	select_params(data_dict, args)
 	print('Done!')

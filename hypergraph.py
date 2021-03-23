@@ -243,8 +243,8 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 		flip_edge_node: whether to flip edge and node in case of relation prediction.
 	"""
 	# data_dict = torch.load(data_path)
-	paper_author = torch.LongTensor(data_dict['paper_author'])
-	author_paper = torch.LongTensor(data_dict['author_paper'])
+	paper_author = torch.LongTensor(data_dict['paper_author']).to(device)
+	author_paper = torch.LongTensor(data_dict['author_paper']).to(device)
 	n_author = data_dict['n_author']  # num users
 	n_paper = data_dict['n_paper']  # num items
 	classes = data_dict['classes']  # [0, 1]
@@ -265,7 +265,7 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	cls_l = list(set(classes))
 
 	args.edge_X = torch.from_numpy(author_X).to(torch.float32)
-	args.edge_classes = torch.LongTensor(author_classes)
+	args.edge_classes = torch.LongTensor(author_classes).to(device)
 
 	cls2int = {k: i for (i, k) in enumerate(cls_l)}
 	classes = [cls2int[c] for c in classes]
@@ -352,10 +352,10 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	# this is used in denominator only
 	e_reg_sum[e_reg_sum == 0] = 1
 	v_reg_sum[v_reg_sum == 0] = 1
-	args.e_reg_weight = torch.Tensor(e_reg_weight).unsqueeze(-1)
-	args.v_reg_sum = torch.Tensor(v_reg_sum).unsqueeze(-1)
-	args.v_reg_weight = torch.Tensor(v_reg_weight).unsqueeze(-1)
-	args.e_reg_sum = torch.Tensor(e_reg_sum).unsqueeze(-1)
+	args.e_reg_weight = torch.Tensor(e_reg_weight).unsqueeze(-1).to(device)
+	args.v_reg_sum = torch.Tensor(v_reg_sum).unsqueeze(-1).to(device)
+	args.v_reg_weight = torch.Tensor(v_reg_weight).unsqueeze(-1).to(device)
+	args.e_reg_sum = torch.Tensor(e_reg_sum).unsqueeze(-1).to(device)
 	print('dataset processed into tensors')
 	return args
 

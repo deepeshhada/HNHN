@@ -1,23 +1,18 @@
 import os
-"""
-	using hypergraph representations for document classification.
-"""
-import _init_paths
-import torch
-import torch.nn as nn
-import numpy as np
-from torch.nn import Parameter
-import torch.optim as optim
-import torch.nn.functional as F
-import torch.optim as optim
-from utils import utils, evaluate, data_utils
-import math
-from sklearn.decomposition import TruncatedSVD
-from collections import defaultdict
 import sys
 import time
+from collections import defaultdict
+from tqdm.auto import tqdm
 
-import pdb
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.nn import Parameter
+from torch.utils.data import DataLoader, TensorDataset
+
+from utils import utils, evaluate, data_utils
 
 device = utils.device
 
@@ -41,7 +36,13 @@ class HyperMod(nn.Module):
 		if is_last and self.use_edge_lin:
 			self.edge_lin = torch.nn.Linear(args.n_hidden, args.final_edge_dim)
 
-	def forward(self, v, e):
+	def forward(self, v, e, batch_idx):
+		bsz = e.shape[0]
+
+		start_idx = batch_idx * bsz
+		end_idx = (batch_idx + 1) * bsz
+		start_idx_3 = batch_idx * bsz * 3
+		end_idx_3 = (batch_idx + 1) * bsz * 3
 
 		if args.edge_linear:
 			ve = torch.matmul(v, self.W_v2e) + self.b_v
@@ -52,46 +53,24 @@ class HyperMod(nn.Module):
 		v = v * self.v_weight * v_fac
 
 		eidx = self.eidx.unsqueeze(-1).expand(-1, self.args.n_hidden)
+
 		e = e.clone()
-		ve = (ve * self.v_weight)[self.args.paper_author[:, 0]]
-		ve *= args.v_reg_weight
-		e.scatter_add_(src=ve, index=eidx, dim=0)
-		e /= args.e_reg_sum
+		ve = (ve * self.v_weight)[self.args.paper_author[:, 0]][start_idx_3:end_idx_3]
+		ve *= args.v_reg_weight[start_idx_3:end_idx_3]
+		e = e.scatter_add(src=ve, index=eidx[:bsz*3], dim=0)
+		e /= args.e_reg_sum[start_idx:end_idx]
 		ev = F.relu(torch.matmul(e, self.W_e2v) + self.b_e)
 
 		vidx = self.vidx.unsqueeze(-1).expand(-1, self.args.n_hidden)
-		ev_vtx = (ev * self.e_weight)[self.args.paper_author[:, 1]]
-		ev_vtx *= args.e_reg_weight
-		v.scatter_add_(src=ev_vtx, index=vidx, dim=0)
+		# ev_vtx = (ev * self.e_weight[start_idx:end_idx])[self.args.paper_author[:, 1][start_idx_3:end_idx_3]]
+		ev_vtx = (ev * self.e_weight[start_idx:end_idx])[self.args.paper_author[:, 1][:bsz*3]]
+		ev_vtx *= args.e_reg_weight[start_idx_3:end_idx_3]
+		v = v.scatter_add(src=ev_vtx, index=vidx[:bsz*3], dim=0)
 		v /= args.v_reg_sum
 		if not self.is_last_mod:
 			v = F.dropout(v, args.dropout_p)
 		if self.is_last_mod and self.use_edge_lin:
 			ev_edge = (ev * torch.exp(self.e_weight) / np.exp(2))[self.args.paper_author[:, 1]]
-			v2 = torch.zeros_like(v)
-			v2.scatter_add_(src=ev_edge, index=vidx, dim=0)
-			v2 = self.edge_lin(v2)
-			v = torch.cat([v, v2], -1)
-		return v, e
-
-	def forward00(self, v, e):
-		v = self.lin1(v)
-		ve = F.relu(torch.matmul(v, self.W_v2e) + self.b_v)
-		v = v * self.v_weight  # *2
-
-		eidx = self.eidx.unsqueeze(-1).expand(-1, self.args.n_hidden)
-		e = e.clone()
-		ve = (ve * self.v_weight)[self.args.paper_author[:, 0]]
-		e.scatter_add_(src=ve, index=eidx, dim=0)
-
-		ev = F.relu(torch.matmul(e, self.W_e2v) + self.b_e)
-		e = e * self.e_weight
-		vidx = self.vidx.unsqueeze(-1).expand(-1, self.args.n_hidden)
-		ev_vtx = (ev * self.e_weight)[self.args.paper_author[:, 1]]
-		v.scatter_add_(src=ev_vtx, index=vidx, dim=0)
-		if self.is_last_mod:
-			ev_edge = (ev * torch.exp(self.e_weight) / np.exp(2))[self.args.paper_author[:, 1]]
-			# pdb.set_trace()
 			v2 = torch.zeros_like(v)
 			v2.scatter_add_(src=ev_edge, index=vidx, dim=0)
 			v2 = self.edge_lin(v2)
@@ -114,6 +93,7 @@ class Hypergraph(nn.Module):
 		super(Hypergraph, self).__init__()
 		self.args = args
 		self.hypermods = []
+
 		is_first = True
 		for i in range(args.n_layers):
 			is_last = True if i == args.n_layers - 1 else False
@@ -141,7 +121,7 @@ class Hypergraph(nn.Module):
 			params.extend(mod.parameters())
 		return params
 
-	def forward(self, v, e):
+	def forward(self, v, e, batch_idx):
 		"""
 			Take initial embeddings from the select labeled data.
 			Return predicted cls.
@@ -150,7 +130,7 @@ class Hypergraph(nn.Module):
 		if self.args.predict_edge:
 			e = self.edge_lin(e)
 		for mod in self.hypermods:
-			v, e = mod(v, e)
+			v, e = mod(v, e, batch_idx)
 
 		logits = self.affine_output(e)
 		pred = self.logistic(logits)  # pred is the implicit rating in (0, 1)
@@ -172,30 +152,62 @@ class Hypertrain:
 		self.hypergraph = self.hypergraph.to_device(device)
 		v_init = v
 		e_init = e
+
+		# create dataloader here from v, e, labels and label_idx
+		# in each batch, all nodes must be present.
+		# batching must be done only for the hyperedges
+		train_dataset = TensorDataset(e_init[label_idx], labels)
+		train_loader = DataLoader(
+			dataset=train_dataset,
+			batch_size=self.args.batch_size,
+			shuffle=False
+		)
+
+		test_dataset = TensorDataset(e_init[self.args.val_idx], self.args.val_labels)
+		test_loader = DataLoader(
+			dataset=test_dataset,
+			batch_size=self.args.batch_size,
+			shuffle=False
+		)
+
+		print(f"train_loader len: {len(train_loader)}")
+
 		best_err = sys.maxsize
-		for i in range(self.args.n_epoch):
-			args.cur_epoch = i
 
-			v, e, pred_all = self.hypergraph(v_init, e_init)
-			pred = pred_all[label_idx].squeeze()
-			loss = self.loss_fn(pred, labels.float())
-			if i % 2 == 0:
-				test_err = self.eval(pred_all)
-				print("test loss:", test_err)
-				if test_err < best_err:
-					best_err = test_err
-			if i % 2 == 0:
-				print('train loss: {}'.format(loss))
-			self.optim.zero_grad()
-			loss.backward()
-			self.optim.step()
-			self.scheduler.step()
+		for epoch in tqdm(range(self.args.n_epoch)):
+			args.cur_epoch = epoch
+			epoch_losses = []
+			for batch_idx, data in enumerate(train_loader):
+				self.optim.zero_grad()
+				batch_e, batch_labels = [item.to(device) for item in data]
 
-		e_loss = self.eval(pred_all)
-		return pred_all, loss, best_err
+				v, e, pred = self.hypergraph(v_init, batch_e, batch_idx)
+				loss = self.loss_fn(pred.squeeze(), batch_labels.float())
+				epoch_losses.append(loss.item())
 
-	def eval(self, all_pred):
-		preds = all_pred[self.args.val_idx].squeeze()
+				loss.backward()
+				self.optim.step()
+				self.scheduler.step()
+			epoch_losses = np.array(epoch_losses)
+
+			print(f'train loss: {np.mean(epoch_losses)}')
+			test_err = self.eval(v_init, test_loader)
+			print("test loss:", test_err)
+			# if test_err < best_err:
+			# 	best_err = test_err
+
+		# return pred_all, loss, best_err
+
+	def eval(self, v_init, test_loader):
+		preds = []
+		for batch_idx, data in tqdm(enumerate(test_loader), position=0, leave=False):
+			batch_e, batch_labels = [item.to(device) for item in data]
+
+			v, e, pred = self.hypergraph(v_init, batch_e, batch_idx)
+			preds.extend(pred.cpu().detach().tolist())
+
+		# preds = all_pred[self.args.val_idx].squeeze()
+		preds = torch.Tensor(preds).squeeze()
 		tgt = self.args.val_labels
 		fn = nn.BCELoss()
 		loss = fn(preds, tgt.float())
@@ -216,11 +228,12 @@ def train(args):
 	if args.predict_edge:
 		args.e = args.edge_X
 	else:
-		args.e = torch.zeros(args.ne, args.n_hidden).to(device)
+		args.e = torch.zeros(args.ne, args.n_hidden)
 	# args.v = torch.randn(self.args.nv, args.n_hidden)
 	hypertrain = Hypertrain(args)
+	hypertrain.train(args.v, args.e, args.label_idx, args.labels)
 
-	pred_all, loss, test_err = hypertrain.train(args.v, args.e, args.label_idx, args.labels)
+	# pred_all, loss, test_err = hypertrain.train(args.v, args.e, args.label_idx, args.labels)
 	return test_err
 
 
@@ -251,8 +264,8 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	# n_cls = data_dict['n_cls']
 	cls_l = list(set(classes))
 
-	args.edge_X = torch.from_numpy(author_X).to(torch.float32).to(device)
-	args.edge_classes = torch.LongTensor(author_classes).to(device)
+	args.edge_X = torch.from_numpy(author_X).to(torch.float32)
+	args.edge_classes = torch.LongTensor(author_classes)
 
 	cls2int = {k: i for (i, k) in enumerate(cls_l)}
 	classes = [cls2int[c] for c in classes]
@@ -282,35 +295,33 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	# args.val_labels = args.all_labels[args.val_idx].to(device)
 
 	n_labels = ne
-	args.all_labels = torch.cuda.LongTensor(args.edge_classes) if torch.cuda.is_available() else torch.cuda.LongTensor(args.edge_classes)
+	args.all_labels = torch.cuda.LongTensor(args.edge_classes) if torch.cuda.is_available() else torch.LongTensor(args.edge_classes)
 	args.label_idx = torch.from_numpy(np.arange(n_labels)).to(torch.int64)
 
-	print('getting validation indices...')
+	print('\ngetting validation indices...')
 	val_idx = torch.from_numpy(np.arange(start=train_len, stop=train_len+test_len))
 	args.val_idx = args.label_idx[val_idx.long()]
-	args.val_labels = args.all_labels[args.val_idx].to(device)
+	args.val_labels = args.all_labels[args.val_idx]
 
 	ones = torch.ones(len(args.label_idx))
 	ones[args.val_idx] = -1
 
 	args.label_idx = args.label_idx[ones > -1]
-	args.labels = args.all_labels[args.label_idx].to(device)
-	args.all_labels = args.all_labels.to(device)
+	args.labels = args.all_labels[args.label_idx]
+	args.all_labels = args.all_labels
 
 	args.test_loader = test_loader
 
 	if isinstance(paper_X, np.ndarray):
-		args.v = torch.from_numpy(paper_X.astype(np.float32)).to(device)
+		args.v = torch.from_numpy(paper_X.astype(np.float32))
 	else:
-		args.v = torch.from_numpy(np.array(paper_X.astype(np.float32).todense())).to(device)
+		args.v = torch.from_numpy(np.array(paper_X.astype(np.float32).todense()))
 
-	args.vidx = paper_author[:, 0].to(device)
-	args.eidx = paper_author[:, 1].to(device)
+	args.vidx = paper_author[:, 0]
+	args.eidx = paper_author[:, 1]
 	args.paper_author = paper_author
-	args.v_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in paperwt]).unsqueeze(-1).to(
-		device)  # torch.ones((nv, 1)) / 2 #####
-	args.e_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in authorwt]).unsqueeze(-1).to(
-		device)  # 1)) / 2 #####torch.ones(ne, 1) / 3
+	args.v_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in paperwt]).unsqueeze(-1)  # torch.ones((nv, 1)) / 2 #####
+	args.e_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in authorwt]).unsqueeze(-1)  # 1)) / 2 #####torch.ones(ne, 1) / 3
 	assert len(args.v_weight) == nv and len(args.e_weight) == ne
 
 	paper2sum = defaultdict(list)
@@ -341,10 +352,10 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	# this is used in denominator only
 	e_reg_sum[e_reg_sum == 0] = 1
 	v_reg_sum[v_reg_sum == 0] = 1
-	args.e_reg_weight = torch.Tensor(e_reg_weight).unsqueeze(-1).to(device)
-	args.v_reg_sum = torch.Tensor(v_reg_sum).unsqueeze(-1).to(device)
-	args.v_reg_weight = torch.Tensor(v_reg_weight).unsqueeze(-1).to(device)
-	args.e_reg_sum = torch.Tensor(e_reg_sum).unsqueeze(-1).to(device)
+	args.e_reg_weight = torch.Tensor(e_reg_weight).unsqueeze(-1)
+	args.v_reg_sum = torch.Tensor(v_reg_sum).unsqueeze(-1)
+	args.v_reg_weight = torch.Tensor(v_reg_weight).unsqueeze(-1)
+	args.e_reg_sum = torch.Tensor(e_reg_sum).unsqueeze(-1)
 	print('dataset processed into tensors')
 	return args
 

@@ -38,6 +38,7 @@ def parse_args():
     parser.add_argument("--seed", default=42, type=int, help='seed for reproducibility')
     parser.add_argument("--top_k", default=10, type=int, help='top_k predictions for HR and NDCG')
     parser.add_argument("--embed_dim", default=300, type=int, help='user, item and list embedding sizes')
+    parser.add_argument("--batch_size", default=4096, type=int, help='batch size of train data loader')
     parser.add_argument("--test_batch_size", default=101, type=int, help='batch size of test data loader')
     parser.add_argument("--dataset_name", type=str, default='MusicalInstruments', help='dataset name')
     parser.add_argument("--num_ng", type=int, default=4, help="Number of negative samples for training set")

@@ -150,7 +150,7 @@ class Hypertrain:
 
 	def train(self, v, e, label_idx, labels):
 		self.hypergraph = self.hypergraph.to_device(device)
-		v_init = v
+		v_init = v.to(device)
 		e_init = e
 
 		# create dataloader here from v, e, labels and label_idx
@@ -207,7 +207,7 @@ class Hypertrain:
 			preds.extend(pred.cpu().detach().tolist())
 
 		# preds = all_pred[self.args.val_idx].squeeze()
-		preds = torch.Tensor(preds).squeeze()
+		preds = torch.Tensor(preds).squeeze().to(device)
 		tgt = self.args.val_labels
 		fn = nn.BCELoss()
 		loss = fn(preds, tgt.float())
@@ -313,15 +313,15 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	args.test_loader = test_loader
 
 	if isinstance(paper_X, np.ndarray):
-		args.v = torch.from_numpy(paper_X.astype(np.float32))
+		args.v = torch.from_numpy(paper_X.astype(np.float32)).to(device)
 	else:
-		args.v = torch.from_numpy(np.array(paper_X.astype(np.float32).todense()))
+		args.v = torch.from_numpy(np.array(paper_X.astype(np.float32).todense())).to(device)
 
 	args.vidx = paper_author[:, 0]
 	args.eidx = paper_author[:, 1]
 	args.paper_author = paper_author
-	args.v_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in paperwt]).unsqueeze(-1)  # torch.ones((nv, 1)) / 2 #####
-	args.e_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in authorwt]).unsqueeze(-1)  # 1)) / 2 #####torch.ones(ne, 1) / 3
+	args.v_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in paperwt]).unsqueeze(-1).to(device)  # torch.ones((nv, 1)) / 2 #####
+	args.e_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in authorwt]).unsqueeze(-1).to(device)  # 1)) / 2 #####torch.ones(ne, 1) / 3
 	assert len(args.v_weight) == nv and len(args.e_weight) == ne
 
 	paper2sum = defaultdict(list)

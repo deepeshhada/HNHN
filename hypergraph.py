@@ -201,9 +201,10 @@ class Hypertrain:
 	def eval(self, v_init, test_loader):
 		preds = []
 		for batch_idx, data in tqdm(enumerate(test_loader), position=0, leave=False):
+			idx = batch_idx + 115
 			batch_e, batch_labels = [item.to(device) for item in data]
 
-			v, e, pred = self.hypergraph(v_init, batch_e, batch_idx)
+			v, e, pred = self.hypergraph(v_init, batch_e, idx)
 			preds.extend(pred.cpu().detach().tolist())
 
 		# preds = all_pred[self.args.val_idx].squeeze()
@@ -244,7 +245,6 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	"""
 	# data_dict = torch.load(data_path)
 	paper_author = torch.LongTensor(data_dict['paper_author']).to(device)
-	author_paper = torch.LongTensor(data_dict['author_paper']).to(device)
 	n_author = data_dict['n_author']  # num users
 	n_paper = data_dict['n_paper']  # num items
 	classes = data_dict['classes']  # [0, 1]
@@ -268,7 +268,6 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	args.edge_classes = torch.LongTensor(author_classes).to(device)
 
 	cls2int = {k: i for (i, k) in enumerate(cls_l)}
-	classes = [cls2int[c] for c in classes]
 	args.input_dim = paper_X.shape[-1]  # 300 if args.dataset_name == 'citeseer' else 300
 	args.n_hidden = 800 if args.predict_edge else 400
 	args.final_edge_dim = 100
@@ -278,21 +277,6 @@ def gen_data(args, data_dict, flip_edge_node=False, do_val=False):
 	ne = args.ne
 	nv = args.nv
 	args.n_cls = len(cls_l)
-
-	# n_labels = max(1, math.ceil(nv * utils.get_label_percent(args.dataset_name)))  # TODO: compare
-	# args.all_labels = torch.LongTensor(classes)  # TODO: compare
-	# args.label_idx = torch.from_numpy(np.random.choice(nv, size=(n_labels,), replace=False)).to(torch.int64)  # TODO: compare
-	# n_labels = max(1, math.ceil(ne * utils.get_label_percent(args.dataset_name)))
-	# n_labels = ne
-	# args.all_labels = torch.LongTensor(args.edge_classes)
-	# args.label_idx = torch.from_numpy(np.random.choice(ne, size=(n_labels,), replace=False)).to(torch.int64)
-	#
-	# print('getting validation indices...')
-	# val_idx = torch.from_numpy(
-	# 	np.random.choice(len(args.label_idx), size=math.ceil(ne * utils.get_label_percent(args.dataset_name)),
-	# 	                 replace=False))
-	# args.val_idx = args.label_idx[val_idx.long()]
-	# args.val_labels = args.all_labels[args.val_idx].to(device)
 
 	n_labels = ne
 	args.all_labels = torch.cuda.LongTensor(args.edge_classes) if torch.cuda.is_available() else torch.LongTensor(args.edge_classes)

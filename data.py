@@ -152,8 +152,9 @@ def process_generic_edge(args):
 		edge_idx = id2edge_idx[edge] if edge in id2edge_idx else len(id2edge_idx)
 		id2edge_idx[edge] = edge_idx
 		for node in nodes:
-			node_idx = id2node_idx[node] if node in id2node_idx else len(id2node_idx)
-			id2node_idx[node] = node_idx
+			# node_idx = id2node_idx[node] if node in id2node_idx else len(id2node_idx)
+			node_idx = int(node)
+			id2node_idx[node] = int(node_idx)
 			node_edge.append([node_idx, edge_idx])
 			edge_node.append([edge_idx, node_idx])
 			edgewt[edge_idx] += 1

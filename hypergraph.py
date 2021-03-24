@@ -142,7 +142,7 @@ class Hypertrain:
 		self.loss_fn = nn.BCELoss()  # consider logits
 
 		self.hypergraph = Hypergraph(args.vidx, args.eidx, args.nv, args.ne, args.v_weight, args.e_weight, args)
-		self.optim = optim.Adam(self.hypergraph.all_params(), lr=.04)
+		self.optim = optim.Adam(self.hypergraph.all_params(), lr=.0004)
 
 		milestones = [100 * i for i in range(1, 4)]  # [100, 200, 300]
 		self.scheduler = optim.lr_scheduler.MultiStepLR(self.optim, milestones=milestones, gamma=0.51)

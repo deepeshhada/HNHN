@@ -219,7 +219,7 @@ def gen_data(args, data_dict):
 		Retrieve and process data, can be used generically for any dataset with predefined data format, eg cora, citeseer, etc.
 		flip_edge_node: whether to flip edge and node in case of relation prediction.
 	"""
-	paper_author = torch.LongTensor(data_dict['paper_author']).to(device)
+	paper_author = torch.LongTensor(data_dict['paper_author'])
 	n_author = data_dict['n_author']  # num users
 	n_paper = data_dict['n_paper']  # num items
 	classes = data_dict['classes']  # [0, 1]
@@ -239,7 +239,7 @@ def gen_data(args, data_dict):
 	cls_l = list(set(classes))
 
 	args.edge_X = torch.from_numpy(author_X).to(torch.float32)
-	args.edge_classes = torch.LongTensor(author_classes).to(device)
+	args.edge_classes = torch.LongTensor(author_classes)
 
 	args.input_dim = paper_X.shape[-1]  # 300 if args.dataset_name == 'citeseer' else 300
 	args.n_hidden = 800 if args.predict_edge else 400
@@ -273,15 +273,15 @@ def gen_data(args, data_dict):
 	args.test_loader = test_loader
 
 	if isinstance(paper_X, np.ndarray):
-		args.v = torch.from_numpy(paper_X.astype(np.float32)).to(device)
+		args.v = torch.from_numpy(paper_X.astype(np.float32))
 	else:
-		args.v = torch.from_numpy(np.array(paper_X.astype(np.float32).todense())).to(device)
+		args.v = torch.from_numpy(np.array(paper_X.astype(np.float32).todense()))
 
 	args.vidx = paper_author[:, 0]
 	args.eidx = paper_author[:, 1]
 	args.paper_author = paper_author
-	args.v_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in paperwt]).unsqueeze(-1).to(device)  # torch.ones((nv, 1)) / 2 #####
-	args.e_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in authorwt]).unsqueeze(-1).to(device)  # 1)) / 2 #####torch.ones(ne, 1) / 3
+	args.v_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in paperwt]).unsqueeze(-1)  # torch.ones((nv, 1)) / 2 #####
+	args.e_weight = torch.Tensor([(1 / w if w > 0 else 1) for w in authorwt]).unsqueeze(-1)  # 1)) / 2 #####torch.ones(ne, 1) / 3
 	assert len(args.v_weight) == nv and len(args.e_weight) == ne
 
 	paper2sum = defaultdict(list)
@@ -312,10 +312,10 @@ def gen_data(args, data_dict):
 	# this is used in denominator only
 	e_reg_sum[e_reg_sum == 0] = 1
 	v_reg_sum[v_reg_sum == 0] = 1
-	args.e_reg_weight = torch.Tensor(e_reg_weight).unsqueeze(-1).to(device)
-	args.v_reg_sum = torch.Tensor(v_reg_sum).unsqueeze(-1).to(device)
-	args.v_reg_weight = torch.Tensor(v_reg_weight).unsqueeze(-1).to(device)
-	args.e_reg_sum = torch.Tensor(e_reg_sum).unsqueeze(-1).to(device)
+	args.e_reg_weight = torch.Tensor(e_reg_weight).unsqueeze(-1)
+	args.v_reg_sum = torch.Tensor(v_reg_sum).unsqueeze(-1)
+	args.v_reg_weight = torch.Tensor(v_reg_weight).unsqueeze(-1)
+	args.e_reg_sum = torch.Tensor(e_reg_sum).unsqueeze(-1)
 	print('dataset processed into tensors')
 	return args
 

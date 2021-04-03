@@ -252,7 +252,7 @@ def gen_data(args, data_dict):
 	args.n_cls = len(cls_l)
 
 	n_labels = ne
-	args.all_labels = torch.cuda.LongTensor(args.edge_classes) if torch.cuda.is_available() else torch.LongTensor(args.edge_classes)
+	args.all_labels = torch.LongTensor(args.edge_classes)
 	args.label_idx = torch.from_numpy(np.arange(n_labels)).to(torch.int64)
 
 	args.train_negatives = data_dict['train_negatives']

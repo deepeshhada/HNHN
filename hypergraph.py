@@ -148,8 +148,10 @@ class Hypertrain:
 			collate_fn=CollateTest(args=args)
 		)
 
+		print("="*75)
 		for epoch in range(args.n_epoch):
 			args.cur_epoch = epoch
+			print(f"Epoch {epoch}/{args.n_epoch}")
 			epoch_losses = []
 			for data in tqdm(train_loader, position=0, leave=False):
 				data = {key: val.to(device) for key, val in data.items()}

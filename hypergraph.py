@@ -43,7 +43,7 @@ class HyperMod(nn.Module):
 		expanded_eidx = eidx.unsqueeze(-1).expand(-1, self.args.n_hidden)
 
 		e = e.clone()
-		ve = (ve * self.v_weight)[vidx]  # 3*B X 800
+		ve = (ve * self.v_weight)[vidx]
 		ve *= v_reg_weight
 		e = e.scatter_add(src=ve, index=expanded_eidx, dim=0)
 		e /= e_reg_sum
@@ -168,6 +168,7 @@ class Hypertrain:
 
 			test_err = self.eval(v_init, graph_test_loader)
 			print("test loss:", test_err)
+			print("="*75)
 			# if test_err < best_err:
 			# 	best_err = test_err
 		# return pred_all, loss, best_err
@@ -244,7 +245,7 @@ def gen_data(args, data_dict):
 	args.input_dim = paper_X.shape[-1]  # 300 if args.dataset_name == 'citeseer' else 300
 	args.n_hidden = 800 if args.predict_edge else 400
 	args.final_edge_dim = 100
-	args.n_epoch = 140 if args.n_layers == 1 else 230  # 130 #120
+	args.n_epoch = 300 if args.n_layers == 1 else 230  # 130 #120
 	args.ne = n_author
 	args.nv = n_paper
 	ne = args.ne

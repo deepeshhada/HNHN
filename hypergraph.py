@@ -23,7 +23,7 @@ class HyperMod(nn.Module):
 	def __init__(self, args, is_last=False):
 		super(HyperMod, self).__init__()
 		self.args = args
-		self.v_weight = args.v_weight
+		self.v_weight = args.v_weight.to(device)
 
 		self.W_v2e = Parameter(torch.randn(args.n_hidden, args.n_hidden))
 		self.W_e2v = Parameter(torch.randn(args.n_hidden, args.n_hidden))
@@ -127,7 +127,7 @@ class Hypertrain:
 
 	def train(self, label_idx, labels):
 		self.hypergraph = self.hypergraph.to_device(device)
-		v_init = self.args.v
+		v_init = self.args.v.to(device)
 		e_init = self.args.e
 
 		train_dataset = GraphDataset(args=self.args)

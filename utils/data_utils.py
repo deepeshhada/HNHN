@@ -158,8 +158,7 @@ def read_embeddings(args, mode):
     return embed_dict
 
 
-def load_data_dict(args):
-    root_path = os.path.join('data', args.dataset_name, 'data_dict')
+def load_data_dict(root_path):
     n_edges = torch.load(os.path.join(root_path, 'n_author.pth'))
     n_nodes = torch.load(os.path.join(root_path, 'n_paper.pth'))
     classes = torch.load(os.path.join(root_path, 'classes.pth'))
@@ -175,6 +174,7 @@ def load_data_dict(args):
     test_len = torch.load(os.path.join(root_path, 'test_len.pth'))
     test_loader = torch.load(os.path.join(root_path, 'test_loader.pth'))
     cls2idx = torch.load(os.path.join(root_path, 'user_item_cls_map.pth'))
+    train_negatives = torch.load(os.path.join(root_path, 'train_negatives.pth'))
 
     data_dict = {
         'n_author': n_edges,
@@ -190,7 +190,8 @@ def load_data_dict(args):
         'train_len': train_len,
         'test_len': test_len,
         'test_loader': test_loader,
-        'user_item_cls_map': cls2idx
+        'user_item_cls_map': cls2idx,
+        'train_negatives': train_negatives
     }
 
     return data_dict

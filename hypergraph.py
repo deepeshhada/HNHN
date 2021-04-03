@@ -13,8 +13,7 @@ from torch.nn import Parameter
 from torch.utils.data import DataLoader, TensorDataset
 
 from utils import utils, evaluate, data_utils
-from dataset import GraphDataset, Collate
-from dataset_test import GraphTestDataset, CollateTest
+from dataset import GraphDataset, Collate, GraphTestDataset, CollateTest
 
 device = utils.device
 
@@ -247,7 +246,6 @@ def gen_data(args, data_dict):
 	args.input_dim = paper_X.shape[-1]  # 300 if args.dataset_name == 'citeseer' else 300
 	args.n_hidden = 800 if args.predict_edge else 400
 	args.final_edge_dim = 100
-	args.n_epoch = 300 if args.n_layers == 1 else 230  # 130 #120
 	args.ne = n_author
 	args.nv = n_paper
 	ne = args.ne

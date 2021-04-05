@@ -25,7 +25,7 @@ class GraphDataset(Dataset):
 		return self.edge_X.shape[0]
 
 	def __getitem__(self, index):
-		vidx = self.positive_vidx[index:index+3]
+		vidx = self.positive_vidx[index*3:(index*3)+3]
 		negatives = self.get_negative_instances(index)
 		vidx = torch.cat((vidx, negatives))
 
@@ -39,7 +39,7 @@ class GraphDataset(Dataset):
 		return vidx, v_reg_weight, edge_x
 
 	def get_negative_instances(self, index):
-		return self.negatives[index:index+self.num_ng].view(-1)
+		return self.negatives[index*self.num_ng:(index*self.num_ng)+self.num_ng].view(-1)
 
 
 class Collate:
@@ -106,7 +106,7 @@ class GraphTestDataset(Dataset):
 		return self.labels.shape[0]
 
 	def __getitem__(self, index):
-		vidx = self.vidx[index:index+3]
+		vidx = self.vidx[index*3:(index*3)+3]
 		v_reg_weight = self.v_reg_wt[vidx]
 		# edge_x = self.edge_X[index].unsqueeze(0)
 		edge_x = self.node_X[vidx].view(-1, 3, 300).sum(dim=1)

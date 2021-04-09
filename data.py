@@ -50,31 +50,33 @@ def load_preprocessed(args):
 			len(train_set), len(test_set), test_loader
 	"""
 	train_data_path = os.path.join('data', args.dataset_name, 'train.csv')
-	test_data_path = os.path.join('data', args.dataset_name, 'test.csv')
+	test_data_path = os.path.join('data', args.dataset_name, 'val.csv')
 	df_save_path = os.path.join('data', args.dataset_name, args.dataset_name + '.graph')
 
-	train_df = pd.read_csv(train_data_path, sep='\t', header=None)
+	# train_df = pd.read_csv(train_data_path, sep='\t', header=None)
+	# test_df = pd.read_csv(test_data_path, sep='\t', header=None)
+	# df = train_df.append(test_df)
+	#
+	# train_df.columns = ['user_id', 'item_id', 'rating']
+	# test_df.columns = ['user_id', 'item_id', 'rating']
+	# df.columns = ['user_id', 'item_id', 'rating']
+	# num_users = train_df['user_id'].nunique()
+	# num_items = train_df['item_id'].nunique()
+	#
+	# df['list_id'] = df['item_id']
+	#
+	# df['item_id'] = df['item_id'] + num_users
+	# df['list_id'] = df['list_id'] + num_users + num_items
+	#
+	# df = df[['user_id', 'item_id', 'list_id', 'rating']]
+	#
+	# df.to_csv(df_save_path, sep='\t', index=False, header=False)
+	#
+	# print('saved graph df!')
+	#
+	# test_df = df[len(train_df):]
 	test_df = pd.read_csv(test_data_path, sep='\t', header=None)
-	df = train_df.append(test_df)
-
-	train_df.columns = ['user_id', 'item_id', 'rating']
-	test_df.columns = ['user_id', 'item_id', 'rating']
-	df.columns = ['user_id', 'item_id', 'rating']
-	num_users = train_df['user_id'].nunique()
-	num_items = train_df['item_id'].nunique()
-
-	df['list_id'] = df['item_id']
-
-	df['item_id'] = df['item_id'] + num_users
-	df['list_id'] = df['list_id'] + num_users + num_items
-
-	df = df[['user_id', 'item_id', 'list_id', 'rating']]
-
-	df.to_csv(df_save_path, sep='\t', index=False, header=False)
-
-	print('saved graph df!')
-
-	test_df = df[len(train_df):]
+	test_df.columns = ['user_id', 'item_id', 'list_id', 'rating']
 	del test_df['list_id']
 	test_df.columns = ['users', 'items', 'ratings']
 	users = torch.Tensor(test_df['users'])
@@ -87,7 +89,8 @@ def load_preprocessed(args):
 		shuffle=False
 	)
 
-	return len(train_df), len(test_df), test_loader
+	return 178208, len(test_df), test_loader
+	# return len(train_df), len(test_df), test_loader
 
 
 def process_generic_edge(args):
@@ -110,9 +113,9 @@ def process_generic_edge(args):
 	data_path = os.path.join('data', args.dataset_name, args.dataset_name + '.graph')
 
 	feat_dim = args.embed_dim
-	user_embeddings = data_utils.read_embeddings(args, mode="user")
-	item_embeddings = data_utils.read_embeddings(args, mode="item")
-	list_embeddings = data_utils.read_embeddings(args, mode="list")
+	# user_embeddings = data_utils.read_embeddings(args, mode="user")
+	# item_embeddings = data_utils.read_embeddings(args, mode="item")
+	# list_embeddings = data_utils.read_embeddings(args, mode="list")
 
 	node2edge = defaultdict(set)
 	edge2node = defaultdict(set)
@@ -124,8 +127,8 @@ def process_generic_edge(args):
 		lines = f.readlines()
 		edge_idx = 0
 		for i, line in enumerate(lines):
-			if i >= train_len:
-				break
+			# if i >= train_len:
+			# 	break
 			line = line.strip().split('\t')
 			if float(line[-1]) == 1:  # don't include test lines (after train_len)
 				try:
@@ -184,32 +187,35 @@ def process_generic_edge(args):
 		lines = f.readlines()
 		edge_id = 0
 		for i, line in enumerate(lines):
-			if i >= train_len:
-				break
+			# if i >= train_len:
+			# 	break
 			line = line.strip().split('\t')
 			if float(line[-1]) == 1:
 				user_id = line[0]
 				item_id = line[1]
 				list_id = line[2]
 
-				user_x = torch.FloatTensor(user_embeddings[int(user_id)])
-				item_x = torch.FloatTensor(item_embeddings[int(item_id)])
-				list_x = torch.FloatTensor(list_embeddings[int(list_id)])
+				# user_x = torch.FloatTensor(user_embeddings[int(user_id)])
+				# item_x = torch.FloatTensor(item_embeddings[int(item_id)])
+				# list_x = torch.FloatTensor(list_embeddings[int(list_id)])
 
 				if user_id in id2node_idx:
 					idx = id2node_idx[user_id]
 					node_idx_set.add(idx)
-					X[idx] = user_x
+					# X[idx] = user_x
+					X[idx] = torch.randn(feat_dim)
 					classes[idx] = 'user'
 				if item_id in id2node_idx:
 					idx = id2node_idx[item_id]
 					node_idx_set.add(idx)
-					X[idx] = item_x
+					# X[idx] = item_x
+					X[idx] = torch.randn(feat_dim)
 					classes[idx] = 'item'
 				if list_id in id2node_idx:
 					idx = id2node_idx[list_id]
 					node_idx_set.add(idx)
-					X[idx] = list_x
+					# X[idx] = list_x
+					X[idx] = torch.randn(feat_dim)
 					classes[idx] = 'list'
 				if str(edge_id) in id2edge_idx:
 					idx = id2edge_idx[str(edge_id)]
@@ -261,5 +267,5 @@ if __name__ == '__main__':
 
 	print(f'seeding for reproducibility at {args.seed}...')
 	utils.seed_everything(args.seed)
-	save_splits(args)
+	# save_splits(args)
 	process_generic_edge(args)

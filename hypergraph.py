@@ -170,8 +170,8 @@ class Hypertrain:
 			test_err = self.eval(v_init, graph_test_loader)
 			print("test loss:", test_err)
 			print("="*75)
-			# if test_err < best_err:
-			# 	best_err = test_err
+		# if test_err < best_err:
+		# 	best_err = test_err
 		# return pred_all, loss, best_err
 
 	def eval(self, v_init, graph_test_loader):
@@ -203,16 +203,13 @@ def train(args):
 		args.v_weight = s
 		label_idx, labels = s
 	"""
-	# args.e = torch.randn(args.ne, args.n_hidden)
 	if args.predict_edge:
 		args.e = args.edge_X
 	else:
 		args.e = torch.zeros(args.ne, args.n_hidden)
-	# args.v = torch.randn(self.args.nv, args.n_hidden)
 	hypertrain = Hypertrain(args)
 	hypertrain.train(args.label_idx, args.labels)
 
-	# pred_all, loss, test_err = hypertrain.train(args.v, args.e, args.label_idx, args.labels)
 	return test_err
 
 

@@ -15,10 +15,7 @@ class GraphDataset(Dataset):
 		self.positive_vidx = args.vidx
 		self.negatives = args.train_negatives
 		self.num_ng = args.num_ng
-
-		self.v_reg_sum = args.v_reg_sum
-		self.v_reg_wt = args.v_weight ** args.alpha_v  # shape = (3229); to be used for e_reg_sum in __get_item__
-
+		self.v_reg_wt = args.v_weight ** args.alpha_v
 		self.args = args
 
 	def __len__(self):
@@ -28,13 +25,8 @@ class GraphDataset(Dataset):
 		vidx = self.positive_vidx[index*3:(index*3)+3]
 		negatives = self.get_negative_instances(index)
 		vidx = torch.cat((vidx, negatives))
-
 		edge_x = self.node_X[vidx].view(-1, 3, 300).sum(dim=1)
-
 		v_reg_weight = self.v_reg_wt[vidx]
-		# edge_x = self.edge_X[index].unsqueeze(0)
-		# negative_x = torch.rand((self.num_ng, 300))
-		# edge_x = torch.cat((edge_x, negative_x))
 
 		return vidx, v_reg_weight, edge_x
 
@@ -82,14 +74,15 @@ class Collate:
 class GraphTestDataset(Dataset):
 	def __init__(self, args):
 		data_path = os.path.join('data', args.dataset_name, args.dataset_name + '.graph')
+		data_path = os.path.join('data', args.dataset_name, 'val.csv')
 		train_len = torch.load(os.path.join('data', args.dataset_name, "data_dict/train_len.pth"))
 		test_points = []
 		labels = []
 		with open(data_path, 'r') as f:
 			lines = f.readlines()
 			for i, line in enumerate(lines):
-				if i < train_len:
-					continue
+				# if i < train_len:
+				# 	continue
 				line = line.split('\t')
 				test_points.append((int(line[0]), int(line[1]), int(line[2])))
 				labels.append(float(line[3]))
@@ -97,7 +90,6 @@ class GraphTestDataset(Dataset):
 		self.vidx = torch.tensor(test_points).view(-1)
 		self.labels = torch.tensor(labels)
 		self.node_X = args.v
-		self.edge_X = torch.rand((self.labels.shape[0], 300))
 		self.v_weight = args.v_weight
 		self.v_reg_wt = args.v_weight ** args.alpha_v
 		self.args = args
@@ -108,11 +100,10 @@ class GraphTestDataset(Dataset):
 	def __getitem__(self, index):
 		vidx = self.vidx[index*3:(index*3)+3]
 		v_reg_weight = self.v_reg_wt[vidx]
-		# edge_x = self.edge_X[index].unsqueeze(0)
 		edge_x = self.node_X[vidx].view(-1, 3, 300).sum(dim=1)
 		label = self.labels[index]
 
-		return vidx, v_reg_weight, edge_x, label.view(1)  # can put view in init
+		return vidx, v_reg_weight, edge_x, label.view(1)
 
 
 class CollateTest:

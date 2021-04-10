@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 class GraphDataset(Dataset):
 	def __init__(self, args, negatives=None):
 		self.node_X = args.v
-		self.edge_X = args.e
+		# self.edge_X = args.e
 		self.v_weight = args.v_weight
 		self.positive_vidx = args.vidx
 		self.negatives = args.train_negatives

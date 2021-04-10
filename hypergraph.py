@@ -223,9 +223,11 @@ def gen_data(args, data_dict):
 	classes = data_dict['classes']  # [0, 1]
 	paper_X = data_dict['paper_X']  # item features
 
-	train_len = data_dict['train_len'] // 5
+	train_len = data_dict['train_len']
 	test_len = data_dict['test_len']
 	test_loader = data_dict['test_loader']
+
+	args.train_len = data_dict['train_len']
 
 	if args.predict_edge:  # 'author_X' in data_dict:
 		# edge representations

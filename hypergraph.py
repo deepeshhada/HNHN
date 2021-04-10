@@ -150,6 +150,7 @@ class Hypertrain:
 		for epoch in range(args.n_epoch):
 			args.cur_epoch = epoch
 			v_mod = v.detach()
+			train_dataset.node_X = v_mod
 			test_dataset.node_X = v_mod
 			print(f"Epoch {epoch}/{args.n_epoch}")
 			epoch_losses = []

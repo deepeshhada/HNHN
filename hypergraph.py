@@ -126,7 +126,7 @@ class Hypertrain:
 
 	def train(self, label_idx, labels):
 		self.hypergraph = self.hypergraph.to_device(device)
-		v = self.args.v.to(device)
+		v_mod = self.args.v.to(device)
 
 		train_dataset = GraphDataset(args=self.args)
 
@@ -149,12 +149,14 @@ class Hypertrain:
 		print("="*75)
 		for epoch in range(args.n_epoch):
 			args.cur_epoch = epoch
+			v_mod = v.detach()
+			test_dataset.node_X = v_mod
 			print(f"Epoch {epoch}/{args.n_epoch}")
 			epoch_losses = []
 			for data in tqdm(train_loader, position=0, leave=False):
 				data = {key: val.to(device) for key, val in data.items()}
 				v, e, pred = self.hypergraph(
-					v, data['e'], data['vidx'], data['eidx'],
+					v_mod, data['e'], data['vidx'], data['eidx'],
 					data['v_reg_weight'], data['e_reg_weight'], data['v_reg_sum'], data['e_reg_sum']
 				)
 				loss = self.loss_fn(pred.squeeze(), data['labels'].float())

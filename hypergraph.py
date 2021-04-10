@@ -229,7 +229,7 @@ def gen_data(args, data_dict):
 
 	if args.predict_edge:  # 'author_X' in data_dict:
 		# edge representations
-		author_X = data_dict['author_X']
+		# author_X = data_dict['author_X']
 		author_classes = data_dict['author_classes']
 
 	paperwt = data_dict['paperwt']

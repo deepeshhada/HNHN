@@ -253,7 +253,7 @@ def process_generic_edge(args):
 	save_data_dict(root_save_path, 'test_loader', test_loader)
 	save_data_dict(root_save_path, 'user_item_cls_map', cls2idx)
 	save_data_dict(root_save_path, 'train_negatives', train_negatives)
-	np.save(os.path.join(root_save_path, 'author_X.npy'), edge_X)
+	# np.save(os.path.join(root_save_path, 'author_X.npy'), edge_X)
 
 	print('Saved dataset at "{}"'.format(root_save_path))
 

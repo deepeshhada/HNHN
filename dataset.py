@@ -19,13 +19,14 @@ class GraphDataset(Dataset):
 		self.args = args
 
 	def __len__(self):
-		return self.edge_X.shape[0]
+		# return self.edge_X.shape[0]
+		return self.args.train_len
 
 	def __getitem__(self, index):
 		vidx = self.positive_vidx[index*3:(index*3)+3]
 		negatives = self.get_negative_instances(index)
 		vidx = torch.cat((vidx, negatives))
-		edge_x = self.node_X[vidx].view(-1, 3, 300).sum(dim=1)
+		edge_x = self.node_X[vidx].view(-1, 3, self.args.embed_dim).sum(dim=1)
 		v_reg_weight = self.v_reg_wt[vidx]
 
 		return vidx, v_reg_weight, edge_x
@@ -100,7 +101,7 @@ class GraphTestDataset(Dataset):
 	def __getitem__(self, index):
 		vidx = self.vidx[index*3:(index*3)+3]
 		v_reg_weight = self.v_reg_wt[vidx]
-		edge_x = self.node_X[vidx].view(-1, 3, 300).sum(dim=1)
+		edge_x = self.node_X[vidx].view(-1, 3, self.args.embed_dim).sum(dim=1)
 		label = self.labels[index]
 
 		return vidx, v_reg_weight, edge_x, label.view(1)

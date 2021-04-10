@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument("--n_layers", default=1, type=int, help='number of layers')
     parser.add_argument("--seed", default=42, type=int, help='seed for reproducibility')
     parser.add_argument("--top_k", default=10, type=int, help='top_k predictions for HR and NDCG')
-    parser.add_argument("--embed_dim", default=300, type=int, help='user, item and list embedding sizes')
+    parser.add_argument("--embed_dim", default=800, type=int, help='user, item and list embedding sizes')
     parser.add_argument("--learning_rate", default=0.004, type=float, help='learning rate')
     parser.add_argument("--n_epoch", default=600, type=int, help='number of epochs to train for')
     parser.add_argument("--batch_size", default=2048, type=int, help='batch size of train data loader')

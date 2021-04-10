@@ -169,7 +169,7 @@ def load_data_dict(root_path):
     edgewt = torch.load(os.path.join(root_path, 'authorwt.pth'))
     X = torch.load(os.path.join(root_path, 'paper_X.pth'))
     # edge_X = torch.load(os.path.join(root_path, 'author_X.pth'))
-    edge_X = np.load(os.path.join(root_path, 'author_X.npy'))
+    # edge_X = np.load(os.path.join(root_path, 'author_X.npy'))
     train_len = torch.load(os.path.join(root_path, 'train_len.pth'))
     test_len = torch.load(os.path.join(root_path, 'test_len.pth'))
     test_loader = torch.load(os.path.join(root_path, 'test_loader.pth'))
@@ -186,7 +186,7 @@ def load_data_dict(root_path):
         'paperwt': nodewt,
         'authorwt': edgewt,
         'paper_X': X,
-        'author_X': edge_X,
+        # 'author_X': edge_X,
         'train_len': train_len,
         'test_len': test_len,
         'test_loader': test_loader,

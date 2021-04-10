@@ -126,8 +126,7 @@ class Hypertrain:
 
 	def train(self, label_idx, labels):
 		self.hypergraph = self.hypergraph.to_device(device)
-		v_init = self.args.v.to(device)
-		e_init = self.args.e
+		v = self.args.v.to(device)
 
 		train_dataset = GraphDataset(args=self.args)
 
@@ -155,7 +154,7 @@ class Hypertrain:
 			for data in tqdm(train_loader, position=0, leave=False):
 				data = {key: val.to(device) for key, val in data.items()}
 				v, e, pred = self.hypergraph(
-					v_init, data['e'], data['vidx'], data['eidx'],
+					v, data['e'], data['vidx'], data['eidx'],
 					data['v_reg_weight'], data['e_reg_weight'], data['v_reg_sum'], data['e_reg_sum']
 				)
 				loss = self.loss_fn(pred.squeeze(), data['labels'].float())
@@ -167,7 +166,7 @@ class Hypertrain:
 			epoch_losses = np.array(epoch_losses)
 			print(f'train loss: {np.mean(epoch_losses)}')
 
-			test_err = self.eval(v_init, graph_test_loader)
+			test_err = self.eval(v, graph_test_loader)
 			print("test loss:", test_err)
 			print("="*75)
 		# if test_err < best_err:
@@ -203,10 +202,10 @@ def train(args):
 		args.v_weight = s
 		label_idx, labels = s
 	"""
-	if args.predict_edge:
-		args.e = args.edge_X
-	else:
-		args.e = torch.zeros(args.ne, args.n_hidden)
+	# if args.predict_edge:
+	# 	args.e = args.edge_X
+	# else:
+	# 	args.e = torch.zeros(args.ne, args.n_hidden)
 	hypertrain = Hypertrain(args)
 	hypertrain.train(args.label_idx, args.labels)
 
@@ -237,7 +236,7 @@ def gen_data(args, data_dict):
 	authorwt = data_dict['authorwt']
 	cls_l = list(set(classes))
 
-	args.edge_X = torch.from_numpy(author_X).to(torch.float32)
+	# args.edge_X = torch.from_numpy(author_X).to(torch.float32)
 	args.edge_classes = torch.LongTensor(author_classes)
 
 	args.input_dim = paper_X.shape[-1]  # 300 if args.dataset_name == 'citeseer' else 300
